@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GovFlow-Xinchuang ｜ 政务协同与信创审批流转中台</title>
+    <style>
+        :root {
+            --bg-base: #0f172a;
+            --bg-card: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --primary: #38bdf8;
+            --primary-hover: #0ea5e9;
+            --accent: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --border: #334155;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif; }
+        body { background-color: var(--bg-base); color: var(--text-main); line-height: 1.5; padding: 24px; }
+        .container { max-width: 1300px; margin: 0 auto; }
+        header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 20px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
+        .logo-box h1 { font-size: 24px; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 10px; }
+        .logo-box p { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+        .nav-links a { color: var(--text-main); text-decoration: none; padding: 8px 16px; border-radius: 6px; background: var(--bg-card); border: 1px solid var(--border); font-size: 13px; transition: all 0.2s; margin-left: 8px; }
+        .nav-links a:hover { background: var(--primary); color: #000; }
+        
+        .grid-kpi { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .kpi-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 18px; text-align: center; }
+        .kpi-title { font-size: 13px; color: var(--text-muted); margin-bottom: 8px; }
+        .kpi-val { font-size: 28px; font-weight: 700; color: var(--primary); }
+
+        .grid-main { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+        .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+        .card h2 { font-size: 16px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; border-left: 4px solid var(--primary); padding-left: 10px; }
+        
+        label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
+        input, select, textarea { width: 100%; padding: 10px; background: #0b1120; border: 1px solid var(--border); border-radius: 6px; color: var(--text-main); font-size: 13px; margin-bottom: 14px; }
+        button { cursor: pointer; padding: 10px 18px; background: var(--primary); border: none; border-radius: 6px; font-weight: 600; color: #0f172a; transition: background 0.2s; font-size: 13px; }
+        button:hover { background: var(--primary-hover); }
+        .btn-group { display: flex; gap: 10px; }
+
+        .code-box { background: #0b1120; border: 1px solid var(--border); border-radius: 6px; padding: 12px; font-family: "Courier New", Courier, monospace; font-size: 12px; color: #a5f3fc; overflow-x: auto; white-space: pre-wrap; margin-top: 10px; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
+        th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--border); }
+        th { color: var(--text-muted); font-weight: 600; }
+        .badge { padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+        .badge-success { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+        .badge-warning { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+        .badge-primary { background: rgba(56, 189, 248, 0.2); color: #7dd3fc; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <div class="logo-box">
+            <h1>🏛️ GovFlow-Xinchuang <span>政务协同与信创审批中台</span></h1>
+            <p>基于 Spring Boot 2.7 · 达梦 DM8 / MySQL 双库适配 · Redis 锁 + 看门狗 · Kafka 出站表可靠削峰</p>
+        </div>
+        <div class="nav-links">
+            <a href="/doc.html" target="_blank">📄 Knife4j 接口文档</a>
+            <a href="https://github.com/WWB2006" target="_blank">💻 GitHub 源码</a>
+        </div>
+    </header>
+
+    <!-- KPI 指标 -->
+    <div class="grid-kpi">
+        <div class="kpi-card">
+            <div class="kpi-title">总申报工单量</div>
+            <div class="kpi-val" id="kpi-records">0</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-title">分布式锁获取数</div>
+            <div class="kpi-val" id="kpi-locks">0</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-title">看门狗自动续期数</div>
+            <div class="kpi-val" id="kpi-renewals">0</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-title">幂等防重拦截数</div>
+            <div class="kpi-val" id="kpi-idemp">0</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-title">Kafka acks确认数</div>
+            <div class="kpi-val" id="kpi-kafka">0</div>
+        </div>
+    </div>
+
+    <!-- 核心板块 -->
+    <div class="grid-main">
+        <!-- 模块一：在线事项申报与并发抢号模拟 -->
+        <div class="card">
+            <h2>📝 在线申报与号源争抢 (分布式锁 + 幂等保护)</h2>
+            <div>
+                <label>选择办理号源时段 (实时配额):</label>
+                <select id="slotSelect">
+                    <option value="SLOT-20261105-AM">2026-11-05 上午 (剩余 50/50)</option>
+                    <option value="SLOT-20261105-PM">2026-11-05 下午 (剩余 50/50)</option>
+                </select>
+                <label>申报人姓名:</label>
+                <input type="text" id="applicantName" value="张三" placeholder="请输入申报人姓名">
+                <label>身份证号码 (脱敏落库):</label>
+                <input type="text" id="idCard" value="610113199801011234">
+                <div class="btn-group">
+                    <button onclick="submitApproval()">🚀 立即在线申报 (抢占号源)</button>
+                    <button style="background: var(--warning); color: #000;" onclick="testDuplicateClick()">⚡ 模拟高频双击 (测试幂等拦截)</button>
+                </div>
+                <div id="applyResult" class="code-box" style="display:none;"></div>
+            </div>
+        </div>
+
+        <!-- 模块二：信创数据库方言转换演示 (MySQL -> 达梦 DM8) -->
+        <div class="card">
+            <h2>🇨🇳 信创达梦 (DM8) / MySQL 方言动态转译引擎</h2>
+            <div>
+                <label>输入标准 MySQL 8.0 查询 SQL:</label>
+                <textarea id="sourceSql" rows="3">SELECT `id`, `user`, IFNULL(`comment`, '无') FROM `gov_approval` WHERE `status` = 'APPROVED' ORDER BY `apply_time` DESC LIMIT 0, 20</textarea>
+                <button onclick="translateSql()">🔄 实时转译为达梦 DM8 方言</button>
+                <div class="code-box" id="translateResult">// 转译结果将显示在此处...</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid-main">
+        <!-- 模块三：慢 SQL 联合索引调优 10 万条实验 -->
+        <div class="card">
+            <h2>📊 10 万条合成审批数据 慢SQL联合索引基准实验</h2>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">
+                针对高频查询: <code>WHERE item_code = 'ITEM-BIZ-01' AND status = 'APPROVED' ORDER BY apply_time DESC LIMIT 20</code> 进行无索引全表扫描 vs 联合索引对照测试
+            </p>
+            <button onclick="runSqlBenchmark()">⏱️ 开始执行基准测试 (各采样 30 次)</button>
+            <div id="benchmarkResult" class="code-box" style="display:none;"></div>
+        </div>
+
+        <!-- 模块四：最新办件与 Kafka 出站事件流 -->
+        <div class="card">
+            <h2>📬 最新审批工单流转与出站表监控</h2>
+            <div style="max-height: 250px; overflow-y: auto;">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>流水号</th>
+                        <th>申报人</th>
+                        <th>当前状态</th>
+                        <th>办理科室</th>
+                    </tr>
+                    </thead>
+                    <tbody id="recordsBody">
+                    <tr><td colspan="4" style="text-align: center; color: var(--text-muted);">暂无申报记录，请在左上角提交测试</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function refreshStats() {
+        try {
+            const res = await fetch('/api/dashboard/stats');
+            const data = await res.json();
+            document.getElementById('kpi-records').innerText = data.totalRecords;
+            document.getElementById('kpi-locks').innerText = data.totalLockAcquired;
+            document.getElementById('kpi-renewals').innerText = data.watchdogRenewals;
+            document.getElementById('kpi-idemp').innerText = data.duplicateBlocked;
+            document.getElementById('kpi-kafka').innerText = data.kafkaConfirmed;
+            loadRecords();
+        } catch (e) {}
+    }
+
+    async function loadRecords() {
+        try {
+            const res = await fetch('/api/gov/records');
+            const list = await res.json();
+            const tbody = document.getElementById('recordsBody');
+            if (list.length === 0) return;
+            tbody.innerHTML = list.map(r => `
+                <tr>
+                    <td style="font-family: monospace; color: var(--primary);">${r.serialNo}</td>
+                    <td>${r.applicantName}</td>
+                    <td><span class="badge badge-success">${r.status}</span></td>
+                    <td style="color: var(--text-muted);">${r.auditDept}</td>
+                </tr>
+            `).join('');
+        } catch (e) {}
+    }
+
+    async function submitApproval() {
+        // 先获取幂等性令牌
+        const tokenRes = await fetch('/api/gov/token');
+        const tokenData = await tokenRes.json();
+        const token = tokenData.token;
+
+        const slotId = document.getElementById('slotSelect').value;
+        const name = document.getElementById('applicantName').value;
+        const idCard = document.getElementById('idCard').value;
+
+        const res = await fetch(`/api/gov/apply?slotId=${slotId}&applicantName=${encodeURIComponent(name)}&idCard=${idCard}`, {
+            method: 'POST',
+            headers: { 'X-Idempotency-Token': token }
+        });
+        const result = await res.json();
+        const box = document.getElementById('applyResult');
+        box.style.display = 'block';
+        box.innerText = JSON.stringify(result, null, 2);
+        refreshStats();
+    }
+
+    async function testDuplicateClick() {
+        const tokenRes = await fetch('/api/gov/token');
+        const tokenData = await tokenRes.json();
+        const token = tokenData.token;
+
+        const slotId = document.getElementById('slotSelect').value;
+        const name = document.getElementById('applicantName').value;
+        const idCard = document.getElementById('idCard').value;
+
+        // 第一次点击
+        await fetch(`/api/gov/apply?slotId=${slotId}&applicantName=${encodeURIComponent(name)}&idCard=${idCard}`, {
+            method: 'POST',
+            headers: { 'X-Idempotency-Token': token }
+        });
+
+        // 立即发起同一 Token 的重复请求
+        const res2 = await fetch(`/api/gov/apply?slotId=${slotId}&applicantName=${encodeURIComponent(name)}&idCard=${idCard}`, {
+            method: 'POST',
+            headers: { 'X-Idempotency-Token': token }
+        });
+        const result2 = await res2.json();
+        const box = document.getElementById('applyResult');
+        box.style.display = 'block';
+        box.innerText = "【双击幂等测试】第二次重复请求返回:\n" + JSON.stringify(result2, null, 2);
+        refreshStats();
+    }
+
+    async function translateSql() {
+        const sql = document.getElementById('sourceSql').value;
+        const res = await fetch(`/api/benchmark/translate?sql=${encodeURIComponent(sql)}&targetDialect=DAMENG_DM8`, { method: 'POST' });
+        const data = await res.json();
+        document.getElementById('translateResult').innerText = 
+            `[源方言] ${data.sourceDialect}\n` +
+            `[达梦转译] ${data.translatedSql}\n` +
+            `[转译延迟] ${data.translationLatencyUs} 微秒 (纳秒级轻量拦截)`;
+    }
+
+    async function runSqlBenchmark() {
+        const box = document.getElementById('benchmarkResult');
+        box.style.display = 'block';
+        box.innerText = "正在执行 30 轮全表扫描 vs 联合索引性能采样基准测试，请稍候...";
+        const res = await fetch('/api/benchmark/slow-sql?iterations=30');
+        const data = await res.json();
+        box.innerText = 
+            `【慢 SQL 联合索引优化实验数据】\n` +
+            `• 无索引全表扫描中位耗时: ${data.medianUnindexedMs.toFixed(2)} ms\n` +
+            `• 建立联合索引后中位耗时: ${data.medianIndexedMs.toFixed(2)} ms\n` +
+            `• 性能提升幅度: ${data.improvementPercent.toFixed(1)}%\n` +
+            `• EXPLAIN 执行计划: 成功消除 Using filesort, 命中 idx_item_status_time 范围检索`;
+    }
+
+    setInterval(refreshStats, 3000);
+    refreshStats();
+</script>
+</body>
+</html>

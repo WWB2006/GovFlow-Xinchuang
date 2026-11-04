@@ -1,0 +1,34 @@
+server:
+  port: 8087
+
+spring:
+  application:
+    name: GovFlow-Xinchuang
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+  datasource:
+    url: jdbc:h2:mem:govflow;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+  sql:
+    init:
+      mode: always
+
+knife4j:
+  enable: true
+  setting:
+    language: zh-CN
+
+govflow:
+  xinchuang:
+    target-dialect: DAMENG_DM8 # Options: MYSQL, DAMENG_DM8
+    slow-sql-threshold-ms: 5.0
+  lock:
+    lease-time-ms: 3000
+    renew-interval-ms: 1000
+  kafka:
+    topic: gov.approval.audit
+    ack-mode: manual_immediate
+    acks: all
